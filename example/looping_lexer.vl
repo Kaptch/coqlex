@@ -1,0 +1,27 @@
+(* *********************************************************************)
+(*                                                                     *)
+(*                 Coqlex verified lexer generator                     *)
+(*                                                                     *)
+(*             (c) 2021 Siemens Mobility SAS and Inria Saclay          *)
+(*                                                                     *)
+(*  Copyright Institut National de Recherche en Informatique et en     *)
+(*  Automatique. All rights reserved. This file is distributed under   *)
+(*  the terms of the INRIA Non-Commercial License Agreement (see the   *)
+(*  LICENSE file).                                                     *)
+(*                                                                     *)
+(* *********************************************************************)
+
+{
+    Require Import String.
+}
+
+%set_history_type string.
+%set_default_history_value EmptyString.
+
+let one = 'b' @ 'a'*@ 'b'
+let two = 'a'*
+
+rule tok_lexer = parse
+    | one { simplyReturnToken 1 }
+    | two { [SelfRec] ++ (simplyReturnToken 2) }
+    $ { simplyReturnToken 0 }

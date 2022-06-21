@@ -1,0 +1,79 @@
+{
+  "nodes": {
+    "flake-utils": {
+      "locked": {
+        "lastModified": 1653893745,
+        "narHash": "sha256-0jntwV3Z8//YwuOjzhV2sgJJPt+HY6KhU7VZUL0fKZQ=",
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "rev": "1ed9fb1935d260de5fe1c2f7ee0ebaae17ed2fa1",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "type": "github"
+      }
+    },
+    "menhirCoq": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1654631083,
+        "narHash": "sha256-F9F8W02CLA8LO3xOalUfQF/aR2xbkhZodCGwk+k4Pug=",
+        "ref": "master",
+        "rev": "7ac6df246bbd395834b4fe269e89270489005775",
+        "revCount": 3392,
+        "type": "git",
+        "url": "https://gitlab.inria.fr/fpottier/menhir.git"
+      },
+      "original": {
+        "ref": "master",
+        "type": "git",
+        "url": "https://gitlab.inria.fr/fpottier/menhir.git"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1655842305,
+        "narHash": "sha256-NuadObni3Hd8TDAB1qYmks1azqQ488yu5TD39lWgfqE=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "ae130530ce28de0a1c5fba00a9b636772bb771f6",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "master",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "regexp": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1655844647,
+        "narHash": "sha256-Kw5L2GyCeCsmj84L2cHJKB99+vxqXEnhXEA8ZbvsuHc=",
+        "ref": "master",
+        "rev": "c0762b4fd799d29311a667615498b1a01584718c",
+        "revCount": 13,
+        "type": "git",
+        "url": "https://github.com/Kaptch/regexp.git"
+      },
+      "original": {
+        "ref": "master",
+        "type": "git",
+        "url": "https://github.com/Kaptch/regexp.git"
+      }
+    },
+    "root": {
+      "inputs": {
+        "flake-utils": "flake-utils",
+        "menhirCoq": "menhirCoq",
+        "nixpkgs": "nixpkgs",
+        "regexp": "regexp"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}

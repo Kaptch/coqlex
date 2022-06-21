@@ -1,0 +1,164 @@
+(* *********************************************************************)
+(*                                                                     *)
+(*                 Coqlex verified lexer generator                     *)
+(*                                                                     *)
+(*             (c) 2021 Siemens Mobility SAS and Inria Saclay          *)
+(*                                                                     *)
+(*  Copyright Institut National de Recherche en Informatique et en     *)
+(*  Automatique. All rights reserved. This file is distributed under   *)
+(*  the terms of the INRIA Non-Commercial License Agreement (see the   *)
+(*  LICENSE file).                                                     *)
+(*                                                                     *)
+(* *********************************************************************)
+
+{
+Require Import String.
+Inductive t_type := 
+    | LET : t_type
+    | REC : t_type
+    | AND : t_type
+    | IN : t_type
+    | FUN : t_type
+    | If : t_type
+    | THEN : t_type
+    | ELSE : t_type
+    | TRUE : t_type
+    | FALSE : t_type
+    | NOT : t_type
+    | COMMA : t_type
+    | EQ : t_type
+    | NE : t_type   
+    | LE : t_type   
+    | GE : t_type   
+    | LT : t_type   
+    | GT : t_type   
+    | ARROW : t_type
+    | MINUS : t_type
+    | PLUS : t_type 
+    | DIV : t_type  
+    | MULT : t_type 
+    | BOOL_AND : t_type
+    | BOOL_OR : t_type
+    | LPAR : t_type 
+    | RPAR : t_type 
+    | STR : string -> t_type 
+    | Nat : string -> t_type 
+    | Ident : string -> t_type 
+    | EOF : t_type . 
+    
+    Definition keywords :=
+   [ ("let"%string,   LET);
+          ("rec"%string,   REC);
+          ("and"%string,   AND);
+          ("in"%string,    IN);
+          ("fun"%string,   FUN);
+          ("if"%string,    If);
+          ("then"%string,  THEN);
+          ("else"%string,  ELSE);
+          ("true"%string,  TRUE);
+          ("false"%string, FALSE);
+          ("not"%string,   NOT)].
+
+Variable list_assoc_opt : string -> list (string * t_type) -> option t_type.
+
+Extract Inlined Constant list_assoc_opt => "List.assoc_opt".
+    
+}
+
+%set_token_type t_type.
+%set_history_type list (Position * Position).
+%set_default_history_value [].
+
+let newline_regex    = '\n' | '\r' | "\r\n"
+let blank      = ' ' | '\t'
+let lowercase  = ['a'-'z' '_']
+let uppercase  = ['A'-'Z' '_']
+let ident_char = ['A'-'Z' 'a'-'z' '_' '\'' '0'-'9']
+let ident      = lowercase @ ident_char*
+let constr     = uppercase @ ident_char*
+let nat        = ['1'-'9'] @ ['0'-'9']* | '0'
+let escaped    = "\\n" | "\\\"" | "\\?" | "\\\\" | "\\a" | "\\b" | "\\f" | "\\r" | "\\t" | "\\v"
+let str_char   = [^'"' '\\' '\n'] | escaped
+let string_regex     = '"' @ str_char* @ '"'
+
+rule comment = parse
+  "(*"         { [
+                    HistoryHandler (fun matched_str start_position last_token_opt remaining_str current_position last_history => ( (start_position, current_position)::last_history));
+                    SelfRec; 
+                    SelfRec
+                 ]
+               }
+               
+| "*)"         { [
+                    AnotherLexer (make_if_true_err_else_no_token_lexer (fun history => ( match history with | [] => true | _ => false end)) "Call of comment without args"%string);
+                    HistoryHandler (fun matched_str start_position last_token_opt remaining_str current_position last_history => ( match last_history with | [] => [] | h::t => t end))
+                 ] 
+               }
+| newline_regex    { [
+                        newline; 
+                        SelfRec
+                     ]                
+                   }
+| _            { [
+                        SelfRec
+                 ]                    
+               }
+$              { 
+                    simplyRaiseError "Opened comment."%string 
+               }
+
+and token_lexer = parse
+  newline_regex      { [
+                        newline; 
+                        SelfRec
+                       ]       
+                     }
+| blank+       { [SelfRec]                               }
+| ","          { simplyReturnToken COMMA                                }
+| "="          { simplyReturnToken EQ                                   }
+| "<>"         { simplyReturnToken NE                                   }
+| "=<"         { simplyReturnToken LE                                   }
+| ">="         { simplyReturnToken GE                                   }
+| "<"          { simplyReturnToken LT                                   }
+| ">"          { simplyReturnToken GT                                   }
+| "->"         { simplyReturnToken ARROW                                }
+| "-"          { simplyReturnToken MINUS                                }
+| "+"          { simplyReturnToken PLUS                                 }
+| "/"          { simplyReturnToken DIV                                  }
+| "*"          { simplyReturnToken MULT                                 }
+| "&&"         { simplyReturnToken BOOL_AND                             }
+| "||"         { simplyReturnToken BOOL_OR                              }
+| "("          { simplyReturnToken LPAR                                 }
+| ")"          { simplyReturnToken RPAR                                 }
+| string_regex { [
+                    TokenReturn (fun s _ _ _ _ h => (ResultOk (STR s), h))
+                 ]                                
+               }
+| "(*"         { 
+                 [
+                    HistoryHandler (fun matched_str start_position last_token_opt remaining_str current_position last_history => ( (start_position, current_position)::last_history));
+                    (AnotherLexer comment); 
+                    SelfRec
+                 ]
+               }
+| nat          { [
+                    TokenReturn (fun n _ _ _ _ h => (ResultOk (Nat n), h))
+                 ]                                
+               }
+| ident        { 
+                 [
+                    TokenReturn (fun id _ _ _ _ h => 
+                        ((match list_assoc_opt id keywords with 
+                         | Some t => ResultOk t
+                         | None => ResultOk (Ident id)
+                         end
+                        ), h))
+                 ]
+               }
+               
+| _       { 
+                 [
+                    TokenReturn (fun c _ _ _ _ h => (ResultError (String.append "Invalid character "%string c), h))
+                 ]
+               }
+$          { simplyReturnToken EOF }

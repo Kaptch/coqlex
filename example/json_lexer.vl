@@ -1,0 +1,93 @@
+(* *********************************************************************)
+(*                                                                     *)
+(*                 Coqlex verified lexer generator                     *)
+(*                                                                     *)
+(*             (c) 2021 Siemens Mobility SAS and Inria Saclay          *)
+(*                                                                     *)
+(*  Copyright Institut National de Recherche en Informatique et en     *)
+(*  Automatique. All rights reserved. This file is distributed under   *)
+(*  the terms of the INRIA Non-Commercial License Agreement (see the   *)
+(*  LICENSE file).                                                     *)
+(*                                                                     *)
+(* *********************************************************************)
+
+{
+Require Import String.
+Inductive t_type :=
+    | INT : string -> t_type
+    | FLOAT : string -> t_type
+    | STRING : string -> t_type
+    | TRUE : t_type
+    | FALSE : t_type
+    | NULL : t_type
+    | LEFT_BRACE : t_type
+    | RIGHT_BRACE : t_type
+    | LEFT_BRACK : t_type
+    | RIGHT_BRACK : t_type
+    | COLON : t_type
+    | COMMA : t_type
+    | EOF : t_type.
+}
+
+%set_history_type string.
+%set_default_history_value EmptyString.
+
+let int_regex = '-'? @ ['0'-'9'] @ ['0'-'9']*
+let digit = ['0'-'9']
+let frac = '.' @ digit*
+let exp = ['e' 'E'] @ ['-' '+']? @ digit+
+let float_regex = digit* @ frac? @ exp?
+let white = [' ' '\t']+
+let newline_regex = '\r' | '\n' | "\r\n"
+let id = ['a'-'z' 'A'-'Z' '_'] @ ['a'-'z' 'A'-'Z' '0'-'9' '_']*
+
+rule read_string =
+  parse
+  | '"'       { [
+                    TokenReturn (fun s _ _ _ _ h => (ResultOk (STRING h), EmptyString))
+                 ] 
+              }
+  | [^ '"' '\\']+
+    { 
+        [HistoryHandler (fun s _ _ _ _ h => String.append h s); SelfRec]
+    }
+  
+  $ {
+        simplyRaiseError "EOF while read_string."%string 
+    }
+
+
+and read =
+  parse
+  | white    { [
+                        SelfRec
+                 ]  
+             }
+  | newline_regex  { [
+                        newline; 
+                        SelfRec
+                     ]                
+             }
+  | int_regex      { [
+                    TokenReturn (fun s _ _ _ _ h => (ResultOk (INT s), h))
+                 ] }
+  | float_regex    { [
+                    TokenReturn (fun s _ _ _ _ h => (ResultOk (FLOAT s), h))
+                 ] }
+  | "true"   { simplyReturnToken TRUE }
+  | "false"  { simplyReturnToken FALSE }
+  | "null"   { simplyReturnToken NULL }
+  | '"'      { [HistoryHandler (fun _ _ _ _ _ _ =>  EmptyString); (AnotherLexer read_string)] }
+  | '{'      { simplyReturnToken LEFT_BRACE }
+  | '}'      { simplyReturnToken RIGHT_BRACE }
+  | '['      { simplyReturnToken LEFT_BRACK }
+  | ']'      { simplyReturnToken RIGHT_BRACK }
+  | ':'      { simplyReturnToken COLON }
+  | ','      { simplyReturnToken COMMA }
+  | _ { [
+            TokenReturn (fun s _ _ _ _ h => (ResultError (String.append "Unexpected char: " s), h))
+         ]
+      }
+  $      { simplyReturnToken EOF }
+  
+
