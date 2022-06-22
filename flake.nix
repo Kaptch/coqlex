@@ -41,15 +41,24 @@
                   pkgs.ocamlPackages.stdlib-shims
                 ];
           };
-          packages.${system}.default = mkCoqDerivation {
+          # apps.default = { type = "app";
+          #                  program = "${self.packages.${system}."coq8.15-coq-coqlex-dev"}/bin/coqlex";
+          #                };
+          packages.default = mkCoqDerivation {
             pname = "coq-coqlex";
-            version = null;
+            version = "./";
+            src = ./.;
+            buildPhase = "make";
+            installPhase = ''
+  mkdir -p $out/bin
+  cp ./a.out $out/bin/coq-coqlex
+  '';
             owner = "Wendlasida OUEDRAOGO & Danko ILIK & Lutz STRASSBURGER";
             meta = {
               description = "These source files contain the implementation, models, and proof of correctness of a formally verified lexers. A verified lexer (or RecLexer) is a lexer that satisfies correctness properties about positions and character consumption. We implemented a constructor for RecLexer from a specification : a list of regular expressions and actions.";
               license = {
                 fullName  = "Inria Non-Commercial License Agreement for the Coqlex verified lexer generator";
-                free      = false;
+                free      = true;
               };
             };
             propagatedBuildInputs =
